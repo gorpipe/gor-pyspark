@@ -16,7 +16,7 @@ def pydataframe(self,qry,schema=None):
     else:
         return _java2py(sc,self.dataframe(qry,None))
     
-def gor(self,qry):
+def gor(self,qry,schema=None):
     global currentGorSession
     spark = currentGorSession.spark
     sc = spark.sparkContext
@@ -25,6 +25,12 @@ def gor(self,qry):
     Rowclass = ReflectionUtil.classForName("org.apache.spark.sql.Row")
     ct = spark._jvm.scala.reflect.ClassTag.apply(Rowclass)
     gds = spark._jvm.org.gorpipe.spark.GorDatasetFunctions(df,ct,ct)
+    if not schema==None:
+        if isinstance(schema, str):
+            jschema = spark._jvm.org.apache.spark.sql.types.StructType.fromDDL(schema.replace(":",""))
+        else:
+            jschema = spark._jvm.org.apache.spark.sql.types.StructType.fromJson(schema.json())
+        return _java2py(sc,gds.gorschema(qry,jschema,currentGorSession))
     return _java2py(sc,gds.gor(qry,True,currentGorSession))
 
 def createGorSession(self):
@@ -38,10 +44,15 @@ def createGorSession(self):
 def createGorSessionWOptions(self,gorproject,cachedir,config,alias):
     sgs = self._jvm.org.gorpipe.spark.SparkGOR.createSession(self._jsparkSession,gorproject,cachedir,config,alias)
     sgs.pydataframe = types.MethodType(pydataframe,sgs)
+    sgs.spark = self
     global currentGorSession
     currentGorSession = sgs
     return sgs
 
+def createGorSessionWProjectCache(self,gorproject,cachedir):
+    return createGorSessionWOptions(self,gorproject,cachedir,None,None)
+
 setattr(DataFrame, 'gor', gor)
 setattr(SparkSession, 'createGorSession', createGorSession)
+setattr(SparkSession, 'createGorSessionWProjectCache', createGorSessionWProjectCache)
 setattr(SparkSession, 'createGorSessionWOptions', createGorSessionWOptions)
