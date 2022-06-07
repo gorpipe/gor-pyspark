@@ -41,7 +41,18 @@ def createGorSession(self):
     currentGorSession = sgs
     return sgs
 
-def createGorSessionWOptions(self,gorproject,cachedir,config,alias):
+def createGorSessionWithSecurityContext(self,gorproject,cachedir,config,alias,securitycontext):
+    sgs = self._jvm.org.gorpipe.spark.SparkGOR.createSession(self._jsparkSession,gorproject,cachedir,config,alias,securitycontext)
+    sgs.pydataframe = types.MethodType(pydataframe,sgs)
+    sgs.spark = self
+    global currentGorSession
+    currentGorSession = sgs
+    return sgs
+
+def createGorSessionWithProjectCacheSecurityContext(self,gorproject,cachedir,securitycontext):
+    return createGorSessionWithSecurityContext(self,gorproject,cachedir,None,None,securitycontext)
+
+def createGorSessionWithOptions(self,gorproject,cachedir,config,alias):
     sgs = self._jvm.org.gorpipe.spark.SparkGOR.createSession(self._jsparkSession,gorproject,cachedir,config,alias)
     sgs.pydataframe = types.MethodType(pydataframe,sgs)
     sgs.spark = self
@@ -49,10 +60,12 @@ def createGorSessionWOptions(self,gorproject,cachedir,config,alias):
     currentGorSession = sgs
     return sgs
 
-def createGorSessionWProjectCache(self,gorproject,cachedir):
-    return createGorSessionWOptions(self,gorproject,cachedir,None,None)
+def createGorSessionWithProjectCache(self,gorproject,cachedir):
+    return createGorSessionWithSecurityContext(self,gorproject,cachedir,None,None)
 
 setattr(DataFrame, 'gor', gor)
 setattr(SparkSession, 'createGorSession', createGorSession)
-setattr(SparkSession, 'createGorSessionWProjectCache', createGorSessionWProjectCache)
-setattr(SparkSession, 'createGorSessionWOptions', createGorSessionWOptions)
+setattr(SparkSession, 'createGorSessionWithProjectCacheSecurityContext', createGorSessionWithProjectCacheSecurityContext)
+setattr(SparkSession, 'createGorSessionWithSecurityContext', createGorSessionWithSecurityContext)
+setattr(SparkSession, 'createGorSessionWithProjectCache', createGorSessionWithProjectCache)
+setattr(SparkSession, 'createGorSessionWithOptions', createGorSessionWithOptions)
